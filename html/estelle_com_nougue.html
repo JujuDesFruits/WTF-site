@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<title>Doughnut Kitten by Tania Hennessy</title>
+	<link href="http://www.doughnutkitten.com/Favicon.ico" rel="icon" type="image/x-icon">
+	<link href="http://www.doughnutkitten.com/Favicon.ico" rel="shortcun icon" type="image/x-icon">
+	<meta name="description" content="Enter this scrumptious Internet retreat, and relax as an adorable kitten riding a doughnut slowly transforms your screen into pastel rainbow art.">
+	<meta property="og:title" content="Doughnut Kitten by Tania Hennessy">
+	<meta property="og:type" content="website">
+	<meta property="og:url" content="http://www.doughnutkitten.com/">
+	<meta property="og:image" content="http://www.doughnutkitten.com/Doughnut_Kitten_by_Tania_Hennessy.png">
+	<meta property="og:site_name" content="Doughnut Kitten by Tania Hennessy">
+	<meta property="og:description" content="Enter this scrumptious Internet retreat, and relax as an adorable kitten riding a doughnut slowly transforms your screen into pastel rainbow art.">
+	<meta name="viewport" content="width=device-width, maximum-scale=1, user-scalable=no">
+	<script type="text/javascript">
+	var kittens = new Array();
+	var current_kitten = -1;
+	var kitten_count = 4;
+	var kitten_graphic_width = 400;
+	var kitten_graphic_height = 428;
+	var rainbow_center_x = 200;
+	var rainbow_center_y = 280;
+	var rainbow_colours = new Array( "#ffcce3", "#ffe1cc", "#ffffc7", "#d4fcdb", "#cfe4ff", "#ddccff" );
+	var year = "live";
+
+	//	Kitten sound, need a seperate object for each instance we want to allow to overlap each other, so lots for fast clicks
+	var kitten_audio = new Array(
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a'),
+		new Audio('../MP3s/Doughnut_Kitten_by_Tania_Hennessy.m4a')
+	);
+	var current_audio = 0;
+
+	//	Kitten movement
+	var kitten_speed = 240;
+	var kitten_path = null;
+	var important_sizes = null;
+
+	function preloadKitten(kitten_index, kitten_image) {
+		var kitten = new Object();
+		kitten.image = new Image();
+		kitten.loaded = false;
+		kitten.index = kitten_index;
+		kittens[kitten.index] = kitten;
+		kitten.image.onload = function() {
+			kitten.loaded = true;
+		};
+		kitten.image.src = "tetelle.png";
+	}
+
+	function preloadKittens() {
+		//	Load a single kitten first so we can display it right away
+		var first_kitten = new Object();
+		first_kitten.image = new Image();
+		first_kitten.loaded = false;
+		first_kitten.index = 0;
+		kittens[first_kitten.index] = first_kitten;
+		first_kitten.image.onload = function() {
+			first_kitten.loaded = true;
+
+			//	Load the rest of the kittens
+			var kitten_index = 1;
+
+			var kitten_images = [];
+			for (kitten_index = 1; kitten_index < kitten_count; ++kitten_index) {
+				kitten_images.push(kitten_index + 1);
+			}
+			for (kitten_index = 1; kitten_index < kitten_count; ++kitten_index) {
+				var array_index = Math.floor(Math.random() * kitten_images.length);
+				var kitten_image = kitten_images[array_index];
+				kitten_images.splice(array_index, 1);
+
+				//					console.log("Shuffled kitten image:" + kitten_image + " into slot:" + kitten_index);
+				preloadKitten(kitten_index, kitten_image);
+			}
+
+			kitten_path.previous_time = performance.now();
+			setKitten(first_kitten);
+			requestAnimationFrame(moveKitten);
+		};
+		first_kitten.image.src = "tetelle.png";
+	}
+
+	function boopKitten() {
+		var next_kitten = null;
+
+		var next_index = current_kitten + 1;
+		while ( (next_index != current_kitten) && (next_kitten === null)) {
+			if (next_index >= kitten_count){
+				next_index = 0;
+			}
+			if (kittens[next_index].loaded == true) {
+				next_kitten = kittens[next_index];
+			}
+			++next_index;
+		}
+
+		if (next_kitten) {
+			setKitten(next_kitten);
+			kitten_audio[current_audio].play();
+			++current_audio;
+			if (current_audio >= kitten_audio.length) {
+				current_audio = 0;
+			}
+		}
+	}
+
+	function setKitten(kitten) {
+		var kitten_div = document.getElementById("kitten");
+		if (kitten_div && kitten) {
+			current_kitten = kitten.index;
+			kitten_div.innerHTML = "<img src=\"" + kitten.image.src + "\" width=\"" + important_sizes.kitten_width + "\" height=\"" + important_sizes.kitten_height + "\" onclick=\"boopKitten();\" />";
+		}
+	}
+
+	function clearRainbows() {
+		var rainbows_div = document.getElementById("rainbows");
+		if (rainbows_div) {
+			rainbows_div.innerHTML = "<canvas id=\"rainbow_canvas\" width=\"" + important_sizes.window_width + "\" height=\"" + important_sizes.window_height + "\" />";
+
+			//	Clear the canvas to our background colour
+			var canvas_element = document.getElementById("rainbow_canvas");
+			if (canvas_element) {
+				var context = canvas_element.getContext("2d");
+				if (context) {
+					context.fillStyle = "#fff5f5";
+					context.fillRect(0,0,important_sizes.window_width,important_sizes.window_height);
+				}
+			}
+		}
+	}
+
+	function createKittenPath() {
+		kitten_path = new Object();
+
+		var top_y = 0 - (important_sizes.kitten_height / 2);
+		var bottom_y = important_sizes.window_height + (important_sizes.kitten_height / 2);
+		var left_x = 0 - (important_sizes.kitten_width / 2);
+		var right_x = important_sizes.window_width + (important_sizes.kitten_width / 2);
+
+		//	Get the point where the kitten will start and move to
+		var side = Math.floor(Math.random() * 4);
+		if ((side == 0) || (side == 1)) {
+			//	Start on the top or bottom
+			kitten_path.start_x = (important_sizes.window_width / 4) + Math.floor(Math.random() * (important_sizes.window_width / 2));
+
+			if (side == 0)					kitten_path.start_y = top_y;
+			else if (side == 1)				kitten_path.start_y = bottom_y;
+
+			var destination = Math.floor(Math.random() * 3);
+			if (destination == 0) {
+				//	Go to the opposite side
+				kitten_path.end_x = Math.floor(Math.random() * important_sizes.window_width);
+				if (side == 0)				kitten_path.end_y = bottom_y;
+				else						kitten_path.end_y = top_y;
+			}
+			else if ((destination == 1) || (destination == 2)) {
+				if (destination == 1)		kitten_path.end_x = left_x;
+				else if (destination == 2)	kitten_path.end_x = right_x;
+
+				var varriance = (Math.floor(Math.random() * important_sizes.window_height) * 3 / 4);
+				if (side == 0)				kitten_path.end_y = bottom_y - varriance;
+				else						kitten_path.end_y = top_y + varriance;
+			}
+		}
+		else if ((side == 2) || (side == 3)) {
+			//	Start on the left or right
+			kitten_path.start_y = (important_sizes.window_height / 4) + Math.floor(Math.random() * (important_sizes.window_height / 2));
+
+			if (side == 2)					kitten_path.start_x = left_x;
+			else if (side == 3)				kitten_path.start_x = right_x;
+
+			var destination = Math.floor(Math.random() * 3);
+			if (destination == 0) {
+				//	Go to the opposite side
+				kitten_path.end_y = Math.floor(Math.random() * important_sizes.window_height);
+				if (side == 2)					kitten_path.end_x = right_x;
+				else if (side == 3)				kitten_path.end_x = left_x;
+			}
+			else if ((destination == 1) || (destination == 2)) {
+				if (destination == 1)			kitten_path.end_y = top_y;
+				else if (destination == 2)		kitten_path.end_y = bottom_y;
+
+				var varriance = (Math.floor(Math.random() * important_sizes.window_width) * 3 / 4);
+				if (side == 2)					kitten_path.end_x = right_x - varriance;
+				else							kitten_path.end_x = left_x + varriance;
+			}
+		}
+		else {
+			//	This should never happen... Straight path across the middle!
+			kitten_path.start_x = 0 - (important_sizes.kitten_width / 2);
+			kitten_path.start_y = important_sizes.window_height / 2;
+			kitten_path.end_x = important_sizes.window_width + (important_sizes.kitten_width / 2);
+			kitten_path.end_y = kitten_path.start_y;
+		}
+
+		//	Get the unit version of this
+		var distance_x = kitten_path.end_x - kitten_path.start_x;
+		var distance_y = kitten_path.end_y - kitten_path.start_y;
+		var distance_sq = (distance_x * distance_x) + (distance_y * distance_y);
+		var distance = Math.sqrt(distance_sq);
+		var unit_x = distance_x / distance;
+		var unit_y = distance_y / distance;
+
+		//	Set the movement based on the path
+		kitten_path.distance = distance;
+		kitten_path.previous_time = performance.now();
+
+		kitten_path.unit_move_x = unit_x;
+		kitten_path.unit_move_y = unit_y;
+
+		//	Set the rainbow offsets to 90 degrees off the path
+		kitten_path.rainbow_offset_x = -unit_y;
+		kitten_path.rainbow_offset_y = unit_x;
+
+		//	Set it to the start
+		kitten_path.current_x = kitten_path.start_x;
+		kitten_path.current_y = kitten_path.start_y;
+		//			console.log("Created path from x:" + kitten_path.start_x + " y:" + kitten_path.start_y + " to x:" + kitten_path.end_x + " y:" + kitten_path.end_y);
+	}
+
+	function moveKitten() {
+		var time = performance.now();
+		var elapsed_time_seconds = (time - kitten_path.previous_time) / 1000;
+		kitten_path.previous_time = time;
+		//	need to do this every frame
+		requestAnimationFrame(moveKitten);
+
+		var kitten_div = document.getElementById("kitten");
+		if (kitten_div) {
+			kitten_div.style.left = (kitten_path.current_x - (important_sizes.kitten_width / 2)) + 'px';
+			kitten_div.style.top = (kitten_path.current_y - (important_sizes.kitten_height / 2)) + 'px';
+		}
+
+		//	Get the next position
+		var next_x = kitten_path.current_x + (kitten_path.unit_move_x * elapsed_time_seconds * kitten_speed);
+		var next_y = kitten_path.current_y + (kitten_path.unit_move_y * elapsed_time_seconds * kitten_speed);
+
+		//			console.log("    Moving from x:" + kitten_path.current_x + " y:" + kitten_path.current_y + " to x:" + next_x + " y:" + next_y + " after " + elapsed_time_seconds + "s");
+
+		//	Draw the rainbow_canvas
+		var canvas_element = document.getElementById("rainbow_canvas");
+		if (canvas_element) {
+			var context = canvas_element.getContext("2d");
+			if (context) {
+				var offset_x = kitten_path.rainbow_offset_x * important_sizes.rainbow_band_thickness;
+				var offset_y = kitten_path.rainbow_offset_y * important_sizes.rainbow_band_thickness;
+				var length = rainbow_colours.length;
+				var index = 0;
+				for (index = 0; index < length; ++index) {
+					var point_offset_x = (offset_x * (index - (length / 2))) + important_sizes.rainbow_offset_x;
+					var point_offset_y = (offset_y * (index - (length / 2))) + important_sizes.rainbow_offset_y;
+					context.beginPath();
+					context.strokeStyle = rainbow_colours[index];
+					context.lineWidth = important_sizes.rainbow_band_thickness;
+					context.moveTo(kitten_path.start_x + point_offset_x, kitten_path.start_y + point_offset_y);
+					context.lineTo(next_x + point_offset_x, next_y + point_offset_y);
+					context.stroke();
+				}
+			}
+		}
+
+		//	Advance the kitten
+		kitten_path.current_x = next_x;
+		kitten_path.current_y = next_y;
+
+		//	This check needs to be done by kitten speed to make sure it doesn't jump over the detection area
+		var sq_distance_x = (kitten_path.current_x - kitten_path.start_x) * (kitten_path.current_x - kitten_path.start_x);
+		var sq_distance_y = (kitten_path.current_y - kitten_path.start_y) * (kitten_path.current_y - kitten_path.start_y);
+		if ((sq_distance_x + sq_distance_y) > (kitten_path.distance * kitten_path.distance)) {
+			createKittenPath();
+		}
+	}
+
+	function onResize() {
+		var content = document.getElementById("content");
+		if (content) {
+			var w = window.innerWidth, h = window.innerHeight - content.offsetTop;
+			content.style.height = h + "px";//to avoid resize loop
+
+			important_sizes = new Object();
+			important_sizes.window_width = w;
+			important_sizes.window_height = h;
+
+			//	Work out what we want the kitten scale to be, window size based?
+			var width_ratio = important_sizes.window_width / kitten_graphic_width;
+			var height_ratio = important_sizes.window_height / kitten_graphic_height;
+			var kitten_scale = 0.5;
+			if (width_ratio > height_ratio) {
+				kitten_scale = height_ratio / 4;
+			}
+			else{
+				kitten_scale = width_ratio / 4;
+			}
+			if (kitten_scale < 0.125) {
+				kitten_scale = 0.125;
+			}
+
+			important_sizes.kitten_width = kitten_graphic_width * kitten_scale;
+			important_sizes.kitten_height = kitten_graphic_height * kitten_scale;
+			important_sizes.rainbow_band_thickness = important_sizes.kitten_width / 14;
+			important_sizes.rainbow_offset_x = (rainbow_center_x * kitten_scale) - (important_sizes.kitten_width / 2);
+			important_sizes.rainbow_offset_y = (rainbow_center_y * kitten_scale) - (important_sizes.kitten_height / 2);
+
+			if (current_kitten != -1) {
+				setKitten(kittens[current_kitten]);
+			}
+			clearRainbows();
+			createKittenPath();
+		}
+	}
+
+	</script>
+	<style type="text/css">html			{ height:100%; }
+	body			{ margin:0;	background-color:#fff5f5; overflow:hidden; height:100%; }
+	#content		{ height:100%; }
+	#menu_button	{ position: absolute; top: 0px; left: 0px; z-index: 2; }
+	#question_mark	{ margin: 0px; border: 0px; }
+	#kitten			{ position: absolute; top: -1000px; left: -1000px; z-index: 1; }
+	#rainbows		{ position: absolute; top: 0px; left: 0px; z-index: 0; }
+	</style>
+</head>
+<body onload="onResize(); preloadKittens();" onorientationchange="onResize();" onresize="onResize();">
+	<div id="content" style="height: 955px;">
+		<div id="kitten" style="left: 1567.37px; top: 193.967px;"><img src="tetelle.png" onclick="boopKitten();" width="223.13084112149534" height="238.75000000000003"></div>
+
+		<div id="rainbows"><canvas id="rainbow_canvas" width="1880" height="955"></canvas></div>
+	</div>
+</body>
+</html>
